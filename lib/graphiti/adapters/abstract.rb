@@ -224,6 +224,10 @@ module Graphiti
         raise Errors::AdapterNotImplemented.new(self, attribute, :filter_boolean_eq)
       end
 
+      def apply_filter_logic_tree(scope, tree, resource, filter_logic)
+        raise Errors::AdapterNotImplemented.new(self, :filter_logic, :apply_filter_logic_tree)
+      end
+
       def base_scope(model)
         raise "you must override #base_scope in an adapter subclass"
       end

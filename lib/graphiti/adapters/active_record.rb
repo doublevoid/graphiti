@@ -319,7 +319,31 @@ module Graphiti
         scope.group(attribute)
       end
 
+      def apply_filter_logic_tree(scope, tree, resource, filter_logic)
+        build_ar_filter_tree(scope, tree, filter_logic)
+      end
+
       private
+
+      def build_ar_filter_tree(base_scope, node, filter_logic)
+        kind = (node["kind"] || node[:kind]).to_s
+
+        if %w[any all].include?(kind)
+          children = node["of"] || node[:of]
+          child_scopes = children.map { |child| build_ar_filter_tree(base_scope, child, filter_logic) }
+
+          if kind == "all"
+            child_scopes.reduce { |combined, child| combined.merge(child) }
+          else
+            child_scopes.reduce { |combined, child| combined.or(child) }
+          end
+        else
+          # Leaf node
+          children = node["of"] || node[:of]
+          fresh = base_scope.model.where(nil)
+          filter_logic.process_leaf(fresh, kind, children)
+        end
+      end
 
       def column_for(scope, name)
         table = scope.klass.arel_table
