@@ -140,6 +140,8 @@ module Graphiti
 
     def filter_logic
       @filter_logic ||= begin
+        return nil unless top_level?
+
         raw = @params[:filter_logic]
         return nil if raw.nil?
 
