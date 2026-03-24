@@ -66,7 +66,26 @@ module PORO
       # TODO: the integer casting here should go away with attribute types
       def apply_filtering(records, params)
         if params[:filter_logic]
-          return apply_filter_logic(records, params[:filter_logic])
+          records = apply_filter_logic(records, params[:filter_logic])
+          # Also apply any conditions set by default filters
+          if params[:conditions] && !params[:conditions].empty?
+            records = records.select do |record|
+              params[:conditions].all? do |key, value|
+                db_value = record.send(key) if record.respond_to?(key)
+                if key == :id
+                  value = value.is_a?(Array) ? value.map(&:to_i) : value.to_i
+                end
+                if value.is_a?(Array)
+                  value.include?(db_value)
+                elsif value.is_a?(Hash) && value[:not]
+                  db_value != value[:not]
+                else
+                  db_value == value
+                end
+              end
+            end
+          end
+          return records
         end
 
         return records unless params[:conditions]

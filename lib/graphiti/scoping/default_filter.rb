@@ -47,12 +47,35 @@ module Graphiti
     private
 
     def overridden?(name)
+      overridden_by_filter_param?(name) || overridden_by_filter_logic?(name)
+    end
+
+    def overridden_by_filter_param?(name)
       if (found = find_filter(name))
         found_aliases = found[name][:aliases]
         filter_param.keys.any? { |k| found_aliases.include?(k.to_sym) }
       else
         false
       end
+    end
+
+    def overridden_by_filter_logic?(name)
+      tree = query_hash[:filter_logic]
+      return false unless tree
+      extract_filter_logic_names(tree).include?(name)
+    end
+
+    def extract_filter_logic_names(node, names = Set.new)
+      kind = (node["kind"] || node[:kind]).to_s
+      children = node["of"] || node[:of]
+
+      if %w[any all].include?(kind)
+        children.each { |child| extract_filter_logic_names(child, names) }
+      else
+        names << children[0].to_sym
+      end
+
+      names
     end
   end
 end

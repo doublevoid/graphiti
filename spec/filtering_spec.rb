@@ -2061,5 +2061,36 @@ RSpec.describe "filtering" do
         )
       end
     end
+
+    context "with default filter" do
+      before do
+        resource.default_filter :first_name do |scope|
+          scope[:conditions][:first_name] = "Harold"
+          scope
+        end
+      end
+
+      context "when attribute is in filter_logic" do
+        before do
+          params[:filter_logic] = {kind: "eq", of: ["first_name", "Stephen"]}.to_json
+        end
+
+        it "suppresses the default filter" do
+          expect(records.map(&:first_name)).to eq(["Stephen"])
+        end
+      end
+
+      context "when attribute is NOT in filter_logic" do
+        before do
+          params[:filter_logic] = {kind: "eq", of: ["last_name", "King"]}.to_json
+        end
+
+        it "applies the default filter" do
+          # Default sets first_name=Harold, filter_logic sets last_name=King
+          # No employee has first_name=Harold AND last_name=King
+          expect(records).to eq([])
+        end
+      end
+    end
   end
 end
