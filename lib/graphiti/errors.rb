@@ -851,5 +851,49 @@ module Graphiti
         MSG
       end
     end
+
+    class InvalidFilterLogicStructure < Base
+      def initialize(details)
+        @details = details
+      end
+
+      def message
+        "Invalid filter_logic structure: #{@details}"
+      end
+    end
+
+    class FilterLogicDepthExceeded < Base
+      def initialize(max_depth)
+        @max_depth = max_depth
+      end
+
+      def message
+        "filter_logic exceeds maximum nesting depth of #{@max_depth}"
+      end
+    end
+
+    class FilterLogicPrimaryResourceConflict < Base
+      def initialize(filter_keys)
+        @filter_keys = filter_keys
+      end
+
+      def message
+        <<-MSG.gsub(/\s+/, " ").strip
+          Primary resource filters cannot be combined with filter_logic.
+          Use filter_logic for primary resource filtering.
+          Found: #{@filter_keys.map { |k| "filter[#{k}]" }.join(", ")}
+        MSG
+      end
+    end
+
+    class FilterLogicInvalidLeaf < Base
+      def initialize(details)
+        @details = details
+      end
+
+      def message
+        "Invalid filter_logic leaf: #{@details}"
+      end
+    end
   end
 end
