@@ -248,6 +248,7 @@ module Graphiti
         opts[:default_paginate] = false unless @query.paginate?
         add_scoping(nil, Graphiti::Scoping::DefaultFilter, opts)
         add_scoping(:filter, Graphiti::Scoping::Filter, opts)
+        add_scoping(nil, Graphiti::Scoping::FilterLogic, opts) if @query.filter_logic
         add_scoping(:sort, Graphiti::Scoping::Sort, opts)
         add_scoping(:paginate, Graphiti::Scoping::Paginate, opts)
       end
