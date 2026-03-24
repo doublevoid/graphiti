@@ -2092,5 +2092,61 @@ RSpec.describe "filtering" do
         end
       end
     end
+
+    context "required filter validation" do
+      before do
+        resource.filter :first_name, :string, required: true
+      end
+
+      context "when required filter is in filter_logic" do
+        before do
+          params[:filter_logic] = {kind: "eq", of: ["first_name", "Stephen"]}.to_json
+        end
+
+        it "does not raise" do
+          expect { records }.not_to raise_error
+        end
+      end
+
+      context "when required filter is missing" do
+        before do
+          params[:filter_logic] = {kind: "eq", of: ["last_name", "King"]}.to_json
+        end
+
+        it "raises RequiredFilter" do
+          expect { records }.to raise_error(Graphiti::Errors::RequiredFilter)
+        end
+      end
+    end
+
+    context "filter group validation" do
+      before do
+        resource.filter :first_name, :string
+        resource.filter :last_name, :string
+        resource.filter_group [:first_name, :last_name], required: :any
+      end
+
+      context "when group filter is in filter_logic" do
+        before do
+          params[:filter_logic] = {kind: "eq", of: ["first_name", "Stephen"]}.to_json
+        end
+
+        it "does not raise" do
+          expect { records }.not_to raise_error
+        end
+      end
+
+      context "when no group filter is present" do
+        before do
+          params[:filter_logic] = {kind: "eq", of: ["id", employee1.id]}.to_json
+        end
+
+        it "raises FilterGroupMissingRequiredFilters" do
+          expect { records }.to raise_error(
+            Graphiti::Errors::FilterGroupMissingRequiredFilters
+          )
+        end
+      end
+    end
   end
 end

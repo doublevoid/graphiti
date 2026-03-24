@@ -20,7 +20,8 @@ module Graphiti
     end
 
     def missing_required_filters
-      required_filters - filter_param.keys
+      provided = filter_param.keys + filter_logic_attribute_names.to_a
+      required_filters - provided
     end
 
     def required_filters
@@ -30,16 +31,33 @@ module Graphiti
     end
 
     def missing_dependent_filters
+      provided_keys = filter_param.keys.map(&:to_sym) + filter_logic_attribute_names.to_a
       [].tap do |arr|
-        filter_param.each_pair do |key, value|
+        provided_keys.each do |key|
           if (df = dependent_filters[key])
-            missing = df[:dependencies] - filter_param.keys
+            missing = df[:dependencies] - provided_keys
             unless missing.length.zero?
               arr << {filter: df, missing: missing}
             end
           end
         end
       end
+    end
+
+    def filter_logic_attribute_names(node = nil, names = Set.new)
+      node ||= query_hash[:filter_logic]
+      return names unless node
+
+      kind = (node["kind"] || node[:kind]).to_s
+      children = node["of"] || node[:of]
+
+      if %w[any all].include?(kind)
+        children.each { |child| filter_logic_attribute_names(child, names) }
+      else
+        names << children[0].to_sym
+      end
+
+      names
     end
 
     def dependent_filters

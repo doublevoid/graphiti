@@ -72,7 +72,25 @@ module Graphiti
     end
 
     def filter_group_filter_param
-      query_hash.fetch(:filter, {})
+      base = query_hash.fetch(:filter, {}).dup
+      if (tree = query_hash[:filter_logic])
+        extract_filter_logic_names(tree).each do |name|
+          base[name] ||= nil
+        end
+      end
+      base
+    end
+
+    def extract_filter_logic_names(node, names = Set.new)
+      kind = (node["kind"] || node[:kind]).to_s
+      children = node["of"] || node[:of]
+
+      if %w[any all].include?(kind)
+        children.each { |child| extract_filter_logic_names(child, names) }
+      else
+        names << children[0].to_sym
+      end
+      names
     end
   end
 end
