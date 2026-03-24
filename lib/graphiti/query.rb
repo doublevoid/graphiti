@@ -50,6 +50,7 @@ module Graphiti
     def hash
       @hash ||= {}.tap do |h|
         h[:filter] = filters
+        h[:filter_logic] = filter_logic if filter_logic
         h[:sort] = sorts
         h[:page] = pagination
         if association?
@@ -137,6 +138,18 @@ module Graphiti
       @extra_fields ||= parse_fieldset(@params[:extra_fields] || {})
     end
 
+    def filter_logic
+      @filter_logic ||= begin
+        raw = @params[:filter_logic]
+        return nil if raw.nil?
+
+        parsed = raw.is_a?(String) ? JSON.parse(raw) : raw
+        parsed
+      rescue JSON::ParserError => e
+        raise Errors::InvalidFilterLogicStructure.new("malformed JSON: #{e.message}")
+      end
+    end
+
     def filters
       @filters ||= {}.tap do |hash|
         (@params[:filter] || {}).each_pair do |name, value|
@@ -157,6 +170,12 @@ module Graphiti
             hash[name] = value
           elsif top_level? && validate!(name, :filterable)
             hash[name] = value
+          end
+        end
+
+        if top_level? && filter_logic
+          if hash.keys.find { |k| !k.to_s.include?(".") }
+            raise Errors::FilterLogicPrimaryResourceConflict.new(primary_keys)
           end
         end
       end
