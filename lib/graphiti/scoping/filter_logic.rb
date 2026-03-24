@@ -13,6 +13,23 @@ module Graphiti
       resource.after_filtering(@scope)
     end
 
+    # Public — adapters call this to process a single leaf node
+    def process_leaf(scope, operator, children)
+      attr_name = children[0].to_sym
+      raw_value = children[1]
+      filter = find_filter!(attr_name)
+      value = coerce_and_validate_leaf(attr_name, raw_value)
+
+      op_sym = operator.to_sym
+      if (custom_scope = filter.values[0][:operators][op_sym])
+        @resource.instance_exec(scope, value, resource.context, &custom_scope)
+      else
+        type_name = Types.name_for(filter.values.first[:type])
+        method = :"filter_#{type_name}_#{op_sym}"
+        resource.adapter.send(method, scope, attr_name, value)
+      end
+    end
+
     private
 
     def validate_tree!(node, depth = 1)
@@ -64,10 +81,10 @@ module Graphiti
 
     def coerce_and_validate_leaf(attr_name, raw_value)
       filter = find_filter!(attr_name)
+      validate_singular(resource, filter, raw_value)
       value = coerce_filter_value(filter.values[0], attr_name, raw_value)
       validate_allowlist(resource, filter, value)
       validate_denylist(resource, filter, value)
-      validate_singular(resource, filter, value)
       value = value[0] if filter.values[0][:single]
       value
     end
@@ -86,9 +103,8 @@ module Graphiti
       GROUP_KINDS.include?(kind.to_s)
     end
 
-    def build_scope(node)
-      # Stub — implemented in Task 6
-      @scope
+    def build_scope(tree)
+      resource.adapter.apply_filter_logic_tree(@scope, tree, resource, self)
     end
   end
 end

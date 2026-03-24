@@ -65,6 +65,10 @@ module PORO
 
       # TODO: the integer casting here should go away with attribute types
       def apply_filtering(records, params)
+        if params[:filter_logic]
+          return apply_filter_logic(records, params[:filter_logic])
+        end
+
         return records unless params[:conditions]
         records.select! do |record|
           params[:conditions].all? do |key, value|
@@ -82,6 +86,39 @@ module PORO
           end
         end
         records
+      end
+
+      def apply_filter_logic(records, tree)
+        records.select do |record|
+          evaluate_filter_node(record, tree)
+        end
+      end
+
+      def evaluate_filter_node(record, node)
+        case node[:kind]
+        when :all
+          node[:children].all? { |child| evaluate_filter_node(record, child) }
+        when :any
+          node[:children].any? { |child| evaluate_filter_node(record, child) }
+        when :leaf
+          match_conditions?(record, node[:conditions])
+        end
+      end
+
+      def match_conditions?(record, conditions)
+        conditions.all? do |key, value|
+          db_value = record.send(key) if record.respond_to?(key)
+          if key == :id
+            value = value.is_a?(Array) ? value.map(&:to_i) : value.to_i
+          end
+          if value.is_a?(Array)
+            value.include?(db_value)
+          elsif value.is_a?(Hash) && value[:not]
+            db_value != value[:not]
+          else
+            db_value == value
+          end
+        end
       end
 
       def apply_sorting(records, params)
@@ -353,9 +390,34 @@ module PORO
       model.create(attributes)
     end
 
+    def apply_filter_logic_tree(scope, tree, resource, filter_logic)
+      scope[:filter_logic] = build_poro_filter_tree(scope, tree, filter_logic)
+      scope
+    end
+
     def resolve(scope)
       ::PORO::DB.all(scope)
     end
+
+    private
+
+    def build_poro_filter_tree(base_scope, node, filter_logic)
+      kind = (node["kind"] || node[:kind]).to_s
+
+      if %w[any all].include?(kind)
+        children = node["of"] || node[:of]
+        child_trees = children.map { |child| build_poro_filter_tree(base_scope, child, filter_logic) }
+        {kind: kind.to_sym, children: child_trees}
+      else
+        # Leaf node — apply the filter to a fresh scope copy to extract conditions
+        children = node["of"] || node[:of]
+        fresh = {type: base_scope[:type], conditions: {}}
+        filtered = filter_logic.process_leaf(fresh, kind, children)
+        {kind: :leaf, conditions: filtered[:conditions] || {}}
+      end
+    end
+
+    public
 
     def save(model_instance)
       model_instance.save

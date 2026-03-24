@@ -1925,4 +1925,141 @@ RSpec.describe "filtering" do
       end
     end
   end
+
+  describe "filter_logic" do
+    context "simple leaf (eq)" do
+      before do
+        params[:filter_logic] = {kind: "eq", of: ["first_name", "Stephen"]}.to_json
+      end
+
+      it "filters correctly" do
+        expect(records.map(&:first_name)).to eq(["Stephen"])
+      end
+    end
+
+    context "all (AND)" do
+      before do
+        params[:filter_logic] = {
+          kind: "all",
+          of: [
+            {kind: "eq", of: ["first_name", "Stephen"]},
+            {kind: "eq", of: ["last_name", "King"]}
+          ]
+        }.to_json
+      end
+
+      it "returns records matching all conditions" do
+        expect(records.map(&:first_name)).to eq(["Stephen"])
+      end
+    end
+
+    context "any (OR)" do
+      before do
+        params[:filter_logic] = {
+          kind: "any",
+          of: [
+            {kind: "eq", of: ["first_name", "Stephen"]},
+            {kind: "eq", of: ["first_name", "Agatha"]}
+          ]
+        }.to_json
+      end
+
+      it "returns records matching any condition" do
+        expect(records.map(&:first_name)).to match_array(["Stephen", "Agatha"])
+      end
+    end
+
+    context "nested: any inside all" do
+      before do
+        params[:filter_logic] = {
+          kind: "all",
+          of: [
+            {kind: "eq", of: ["last_name", "King"]},
+            {kind: "any",
+             of: [
+               {kind: "eq", of: ["first_name", "Stephen"]},
+               {kind: "eq", of: ["first_name", "Agatha"]}
+             ]}
+          ]
+        }.to_json
+      end
+
+      it "returns records matching the nested boolean logic" do
+        expect(records.map(&:first_name)).to eq(["Stephen"])
+      end
+    end
+
+    context "nested: all inside any" do
+      before do
+        params[:filter_logic] = {
+          kind: "any",
+          of: [
+            {kind: "all",
+             of: [
+               {kind: "eq", of: ["first_name", "Stephen"]},
+               {kind: "eq", of: ["last_name", "King"]}
+             ]},
+            {kind: "eq", of: ["first_name", "Agatha"]}
+          ]
+        }.to_json
+      end
+
+      it "returns records matching the nested boolean logic" do
+        expect(records.map(&:first_name)).to match_array(["Stephen", "Agatha"])
+      end
+    end
+
+    context "single-element group" do
+      before do
+        params[:filter_logic] = {
+          kind: "any",
+          of: [{kind: "eq", of: ["first_name", "Stephen"]}]
+        }.to_json
+      end
+
+      it "is equivalent to the child itself" do
+        expect(records.map(&:first_name)).to eq(["Stephen"])
+      end
+    end
+
+    context "with custom filter block" do
+      before do
+        resource.filter :first_name, :string do
+          eq do |scope, value|
+            scope[:conditions][:first_name] = value
+            scope
+          end
+        end
+        params[:filter_logic] = {kind: "eq", of: ["first_name", "Stephen"]}.to_json
+      end
+
+      it "uses the custom filter block" do
+        expect(records.map(&:first_name)).to eq(["Stephen"])
+      end
+    end
+
+    context "with type coercion (boolean)" do
+      before do
+        resource.attribute :active, :boolean, filterable: true
+        params[:filter_logic] = {kind: "eq", of: ["active", "true"]}.to_json
+      end
+
+      it "coerces the value" do
+        expect { records }.not_to raise_error
+      end
+    end
+
+    context "filter_logic with primary resource filter param" do
+      before do
+        params[:filter_logic] = {kind: "eq", of: ["first_name", "Stephen"]}.to_json
+        params[:filter] = {first_name: "Agatha"}
+      end
+
+      it "raises FilterLogicPrimaryResourceConflict" do
+        expect { records }.to raise_error(
+          Graphiti::Errors::FilterLogicPrimaryResourceConflict
+        )
+      end
+    end
+  end
 end
