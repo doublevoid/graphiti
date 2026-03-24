@@ -93,7 +93,8 @@ module Graphiti
           :filters_accept_nil_by_default,
           :filters_deny_empty_by_default,
           :graphql_entrypoint,
-          :cursor_paginatable
+          :cursor_paginatable,
+          :filter_logic_max_depth
 
         class << self
           prepend Overrides
@@ -117,6 +118,7 @@ module Graphiti
           default(klass, :relationships_writable_by_default, true)
           default(klass, :filters_accept_nil_by_default, false)
           default(klass, :filters_deny_empty_by_default, false)
+          default(klass, :filter_logic_max_depth, 4)
 
           unless klass.config[:attributes][:id]
             klass.attribute :id, :integer_id
