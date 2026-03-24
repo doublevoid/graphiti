@@ -222,4 +222,38 @@ RSpec.describe Graphiti::Scoping::FilterLogic do
       end
     end
   end
+
+  describe "leaf value validation" do
+    context "with allow list violation" do
+      before do
+        resource.filter :first_name, :string, allow: ["Stephen", "Agatha"]
+        params[:filter_logic] = {kind: "eq", of: ["first_name", "Harold"]}.to_json
+      end
+
+      it "raises InvalidFilterValue" do
+        expect { records }.to raise_error(Graphiti::Errors::InvalidFilterValue)
+      end
+    end
+
+    context "with deny list violation" do
+      before do
+        resource.filter :first_name, :string, deny: ["Harold"]
+        params[:filter_logic] = {kind: "eq", of: ["first_name", "Harold"]}.to_json
+      end
+
+      it "raises InvalidFilterValue" do
+        expect { records }.to raise_error(Graphiti::Errors::InvalidFilterValue)
+      end
+    end
+
+    context "with type coercion" do
+      before do
+        params[:filter_logic] = {kind: "eq", of: ["id", "1"]}.to_json
+      end
+
+      it "coerces the value to the correct type" do
+        expect { records }.not_to raise_error
+      end
+    end
+  end
 end

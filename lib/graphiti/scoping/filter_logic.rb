@@ -59,6 +59,17 @@ module Graphiti
 
       attr_name = children[0].to_sym
       validate_leaf_filter!(attr_name, operator.to_sym)
+      coerce_and_validate_leaf(attr_name, children[1])
+    end
+
+    def coerce_and_validate_leaf(attr_name, raw_value)
+      filter = find_filter!(attr_name)
+      value = coerce_filter_value(filter.values[0], attr_name, raw_value)
+      validate_allowlist(resource, filter, value)
+      validate_denylist(resource, filter, value)
+      validate_singular(resource, filter, value)
+      value = value[0] if filter.values[0][:single]
+      value
     end
 
     def validate_leaf_filter!(attr_name, operator)

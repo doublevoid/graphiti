@@ -65,25 +65,12 @@ module Graphiti
           check_deny_empty_filters!(resource, filter, value)
           value = parse_string_null(filter.values[0], value)
           validate_singular(resource, filter, value)
-          value = coerce_types(filter.values[0], param_name.to_sym, value)
+          value = coerce_filter_value(filter.values[0], param_name.to_sym, value)
           validate_allowlist(resource, filter, value)
           validate_denylist(resource, filter, value)
           value = value[0] if filter.values[0][:single]
           yield filter, operator, value
         end
-      end
-    end
-
-    def coerce_types(filter, name, value)
-      type_name = filter[:type]
-      is_array = type_name.to_s.starts_with?("array_of") ||
-        Types[type_name][:canonical_name] == :array
-
-      if is_array
-        @resource.typecast(name, value, :filterable)
-      else
-        value = value.nil? || value.is_a?(Hash) ? [value] : Array(value)
-        value.map { |v| @resource.typecast(name, v, :filterable) }
       end
     end
 
@@ -113,32 +100,6 @@ module Graphiti
       unless supported.include?(operator)
         raise Errors::UnsupportedOperator.new \
           resource, filter.keys[0], supported, operator
-      end
-    end
-
-    def validate_singular(resource, filter, value)
-      if filter.values[0][:single] && value.is_a?(Array)
-        raise Errors::SingularFilter.new(resource, filter, value)
-      end
-    end
-
-    def validate_allowlist(resource, filter, values)
-      values.each do |v|
-        if (allow = filter.values[0][:allow])
-          unless allow.include?(v)
-            raise Errors::InvalidFilterValue.new(resource, filter, v)
-          end
-        end
-      end
-    end
-
-    def validate_denylist(resource, filter, values)
-      values.each do |v|
-        if (deny = filter.values[0][:deny])
-          if deny.include?(v)
-            raise Errors::InvalidFilterValue.new(resource, filter, v)
-          end
-        end
       end
     end
 
