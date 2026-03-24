@@ -319,7 +319,7 @@ module Graphiti
         scope.group(attribute)
       end
 
-      def apply_filter_logic_tree(scope, tree, resource, filter_logic)
+      def apply_filter_logic_tree(scope, tree, filter_logic)
         build_ar_filter_tree(scope, tree, filter_logic)
       end
 

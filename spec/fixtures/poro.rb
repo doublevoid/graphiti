@@ -390,7 +390,7 @@ module PORO
       model.create(attributes)
     end
 
-    def apply_filter_logic_tree(scope, tree, resource, filter_logic)
+    def apply_filter_logic_tree(scope, tree, filter_logic)
       scope[:filter_logic] = build_poro_filter_tree(scope, tree, filter_logic)
       scope
     end

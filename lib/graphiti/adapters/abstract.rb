@@ -224,7 +224,7 @@ module Graphiti
         raise Errors::AdapterNotImplemented.new(self, attribute, :filter_boolean_eq)
       end
 
-      def apply_filter_logic_tree(scope, tree, resource, filter_logic)
+      def apply_filter_logic_tree(scope, tree, filter_logic)
         raise Errors::AdapterNotImplemented.new(self, :filter_logic, :apply_filter_logic_tree)
       end
 

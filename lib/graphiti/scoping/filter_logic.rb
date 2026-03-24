@@ -104,7 +104,7 @@ module Graphiti
     end
 
     def build_scope(tree)
-      resource.adapter.apply_filter_logic_tree(@scope, tree, resource, self)
+      resource.adapter.apply_filter_logic_tree(@scope, tree, self)
     end
   end
 end
