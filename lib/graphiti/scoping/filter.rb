@@ -20,34 +20,13 @@ module Graphiti
       end
 
       each_filter do |filter, operator, value|
-        @scope = filter_scope(filter, operator, value)
+        @scope = apply_filter(@scope, filter, operator, value)
       end
 
       resource.after_filtering(@scope)
     end
 
     private
-
-    def filter_scope(filter, operator, value)
-      if (custom_scope = filter.values[0][:operators][operator])
-        @resource.instance_exec(@scope, value, resource.context, &custom_scope)
-      else
-        filter_via_adapter(filter, operator, value)
-      end
-    end
-
-    def filter_via_adapter(filter, operator, value)
-      type_name = Types.name_for(filter.values.first[:type])
-      method = :"filter_#{type_name}_#{operator}"
-      attribute = filter.keys.first
-
-      if resource.adapter.respond_to?(method)
-        resource.adapter.send(method, @scope, attribute, value)
-      else
-        raise Errors::AdapterNotImplemented.new \
-          resource.adapter, attribute, method
-      end
-    end
 
     def each_filter
       filter_param.each_pair do |param_name, param_value|

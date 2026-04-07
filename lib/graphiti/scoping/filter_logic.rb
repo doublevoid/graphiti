@@ -50,15 +50,7 @@ module Graphiti
       raw_value = children[1]
       filter = find_filter!(attr_name)
       value = coerce_and_validate_leaf(attr_name, raw_value)
-
-      op_sym = operator.to_sym
-      if (custom_scope = filter.values[0][:operators][op_sym])
-        @resource.instance_exec(scope, value, resource.context, &custom_scope)
-      else
-        type_name = Types.name_for(filter.values.first[:type])
-        method = :"filter_#{type_name}_#{op_sym}"
-        resource.adapter.send(method, scope, attr_name, value)
-      end
+      apply_filter(scope, filter, operator.to_sym, value)
     end
 
     private
