@@ -146,6 +146,7 @@ module Graphiti
         return nil if raw.nil?
 
         parsed = raw.is_a?(String) ? JSON.parse(raw) : raw
+        Graphiti::Scoping::FilterLogic.validate_structure!(parsed)
         parsed
       rescue JSON::ParserError => e
         raise Errors::InvalidFilterLogicStructure.new("malformed JSON: #{e.message}")
@@ -176,7 +177,8 @@ module Graphiti
         end
 
         if top_level? && filter_logic
-          if hash.keys.find { |k| !k.to_s.include?(".") }
+          primary_keys = hash.keys.select { |k| !k.to_s.include?(".") }
+          if primary_keys.any?
             raise Errors::FilterLogicPrimaryResourceConflict.new(primary_keys)
           end
         end
