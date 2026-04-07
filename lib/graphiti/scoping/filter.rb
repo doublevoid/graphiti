@@ -95,14 +95,6 @@ module Graphiti
       end
     end
 
-    def validate_operator(filter, operator)
-      supported = filter.values[0][:operators].keys
-      unless supported.include?(operator)
-        raise Errors::UnsupportedOperator.new \
-          resource, filter.keys[0], supported, operator
-      end
-    end
-
     def parse_hash_value(filter, param_value, value, operator)
       has_filter = resource.filters.dig(filter.keys.first, :operators, operator).present?
 

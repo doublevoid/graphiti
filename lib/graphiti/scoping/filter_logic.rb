@@ -86,7 +86,8 @@ module Graphiti
 
     def validate_leaf_node!(operator, children)
       attr_name = children[0].to_sym
-      validate_leaf_filter!(attr_name, operator.to_sym)
+      filter = find_filter!(attr_name)
+      validate_operator(filter, operator.to_sym)
       coerce_and_validate_leaf(attr_name, children[1])
     end
 
@@ -98,16 +99,6 @@ module Graphiti
       validate_denylist(resource, filter, value)
       value = value[0] if filter.values[0][:single]
       value
-    end
-
-    def validate_leaf_filter!(attr_name, operator)
-      filter = find_filter!(attr_name)
-      supported = filter.values[0][:operators].keys
-      unless supported.include?(operator)
-        raise Errors::UnsupportedOperator.new(
-          resource, attr_name, supported, operator
-        )
-      end
     end
 
     def group_node?(kind)

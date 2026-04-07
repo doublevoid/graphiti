@@ -99,6 +99,14 @@ module Graphiti
       end
     end
 
+    def validate_operator(filter, operator)
+      supported = filter.values[0][:operators].keys
+      unless supported.include?(operator)
+        raise Graphiti::Errors::UnsupportedOperator.new \
+          resource, filter.keys[0], supported, operator
+      end
+    end
+
     def validate_singular(resource, filter, value)
       if filter.values[0][:single] && value.is_a?(Array)
         raise Graphiti::Errors::SingularFilter.new(resource, filter, value)
